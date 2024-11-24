@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  role          UserRole
+  name          String?
+  organization  Organization?  @relation("OrganizationToUser")
+  supporter     Supporter?     @relation("SupporterToUser")
+  sponsor       Sponsor?       @relation("SponsorToUser")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Organization {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  website       String?
+  user          User      @relation("OrganizationToUser", fields: [userId], references: [id])
+  userId        String    @unique
+  campaigns     Campaign[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Supporter {
+  id            String    @id @default(cuid())
+  user          User      @relation("SupporterToUser", fields: [userId], references: [id])
+  userId        String    @unique
+  donations     Donation[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Sponsor {
+  id            String    @id @default(cuid())
+  companyName   String
+  industry      String?
+  user          User      @relation("SponsorToUser", fields: [userId], references: [id])
+  userId        String    @unique
+  sponsorships  Sponsorship[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Campaign {
+  id            String    @id @default(cuid())
+  title         String
+  description   String
+  goal          Float
+  raised        Float     @default(0)
+  organization  Organization @relation(fields: [orgId], references: [id])
+  orgId         String
+  donations     Donation[]
+  sponsorships  Sponsorship[]
+  startDate     DateTime
+  endDate       DateTime?
+  status        CampaignStatus @default(ACTIVE)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Donation {
+  id            String    @id @default(cuid())
+  amount        Float
+  campaign      Campaign  @relation(fields: [campaignId], references: [id])
+  campaignId    String
+  supporter     Supporter @relation(fields: [supporterId], references: [id])
+  supporterId   String
+  status        PaymentStatus @default(PENDING)
+  createdAt     DateTime  @default(now())
+}
+
+model Sponsorship {
+  id            String    @id @default(cuid())
+  amount        Float
+  campaign      Campaign  @relation(fields: [campaignId], references: [id])
+  campaignId    String
+  sponsor       Sponsor   @relation(fields: [sponsorId], references: [id])
+  sponsorId     String
+  status        PaymentStatus @default(PENDING)
+  createdAt     DateTime  @default(now())
+}
+
+enum UserRole {
+  ADMIN
+  NONPROFIT
+  SUPPORTER
+  SPONSOR
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
